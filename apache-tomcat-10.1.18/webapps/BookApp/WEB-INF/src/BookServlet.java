@@ -1,0 +1,86 @@
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+public class BookServlet extends HttpServlet {
+
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse res)
+            throws IOException {
+
+        res.setContentType("text/html");
+        PrintWriter out = res.getWriter();
+
+        // Get search keyword from HTML form
+        String key = req.getParameter("key");
+
+        try {
+
+            // Load PostgreSQL Driver
+            Class.forName("org.postgresql.Driver");
+
+            // Connect to Supabase PostgreSQL
+            Connection con = DriverManager.getConnection(
+                "jdbc:postgresql://aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres?sslmode=require&connectTimeout=10",
+                "postgres.ysnlzqhxxfmragaxbzbs",
+                "HK6VLOGS@12345"
+            );
+
+            // SQL Query
+            String sql = "SELECT * FROM public.books WHERE title ILIKE ? OR author ILIKE ?";
+
+            PreparedStatement ps = con.prepareStatement(sql);
+
+            ps.setString(1, "%" + key + "%");
+            ps.setString(2, "%" + key + "%");
+
+            // Execute Query
+            ResultSet rs = ps.executeQuery();
+
+            // Display Result
+            out.println("<html>");
+            out.println("<head><title>Book Search</title></head>");
+            out.println("<body>");
+
+            out.println("<h2>Book List</h2>");
+
+            out.println("<table border='1'>");
+            out.println("<tr>");
+            out.println("<th>Title</th>");
+            out.println("<th>Author</th>");
+            out.println("<th>Price</th>");
+            out.println("</tr>");
+
+            while (rs.next()) {
+
+                out.println("<tr>");
+
+                out.println("<td>" + rs.getString("title") + "</td>");
+                out.println("<td>" + rs.getString("author") + "</td>");
+                out.println("<td>" + rs.getInt("price") + "</td>");
+
+                out.println("</tr>");
+            }
+
+            out.println("</table>");
+            out.println("</body>");
+            out.println("</html>");
+
+            rs.close();
+            ps.close();
+            con.close();
+
+        } catch (Exception e) {
+
+            out.println("<h3>Error:</h3>");
+            out.println("<pre>" + e + "</pre>");
+        }
+    }
+}
